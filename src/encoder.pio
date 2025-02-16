@@ -1,0 +1,81 @@
+;; Modified version of  https://github.com/GitJer/Rotary_encoder/blob/master/pio_rotary_encoder.pio
+;; MIT License
+.program encoder
+.wrap_target
+.origin 0        ; The jump table has to start at 0
+                 ; it contains the correct jumps for each of the 16  
+                 ; combination of 4 bits formed by A'B'AB
+                 ; A = current reading of pin_A of the rotary encoder
+                 ; A' = previous reading of pin_A of the rotary encoder
+                 ; B = current reading of pin_B of the rotary encoder
+                 ; B' = previous reading of pin_B of the rotary encoder
+    jmp read     ; 0000 = from 00 to 00 = no change in reading
+    jmp CW       ; 0001 = from 00 to 01 = clockwise rotation
+    jmp CCW      ; 0010 = from 00 to 10 = counter clockwise rotation
+    jmp read     ; 0011 = from 00 to 11 = error
+
+    jmp CCW      ; 0100 = from 01 to 00 = counter clockwise rotation
+    jmp read     ; 0101 = from 01 to 01 = no change in reading 
+    jmp read     ; 0110 = from 01 to 10 = error
+    jmp CW       ; 0111 = from 01 to 11 = clockwise rotation
+ 
+    jmp CW       ; 1000 = from 10 to 00 = clockwise rotation
+    jmp read     ; 1001 = from 10 to 01 = error
+    jmp read     ; 1010 = from 10 to 10 = no change in reading 
+    jmp CCW      ; 1011 = from 10 to 11 = counter clockwise rotation
+ 
+    jmp read     ; 1100 = from 11 to 00 = error
+    jmp CCW      ; 1101 = from 11 to 01 = counter clockwise rotation
+    jmp CW       ; 1110 = from 11 to 10 = clockwise rotation
+    jmp read     ; 1111 = from 11 to 11 = no change in reading 
+
+pc_start:        ; this is the entry point for the program
+    in pins 2    ; read the current values of A and B and use 
+                 ; them to initialize the previous values (A'B')
+read:
+    mov OSR ISR  ; the OSR is (after the next instruction) used to shift 
+                 ; the two bits with the previous values into the ISR
+    out ISR 2    ; shift the previous value into the ISR. This also sets
+                 ; all other bits in the ISR to 0
+    in pins 2    ; shift the current value into the ISR
+                 ; the 16 LSB of the ISR now contain 000000000000A'B'AB
+                 ; this represents a jmp instruction to the address A'B'AB 
+    mov exec ISR ; do the jmp encoded in the ISR
+CW:              ; a clockwise rotation was detected
+    irq 0        ; signal a clockwise rotation via an IRQ
+    jmp read     ; jump to reading the current values of A and B
+CCW:             ; a counter clockwise rotation was detected
+    irq 1        ; signal a counter clockwise rotation via an IRQ
+;    jmp read    ; jump to reading the current values of A and B.
+                 ; the jmp isn't needed because of the .wrap, and the first 
+                 ; statement of the program happens to be a jmp read
+.wrap
+
+% c-sdk {
+static inline void encoder_program_init(PIO pio, uint sm, uint *offset, uint A, uint B, void irq_handler()) {
+        // configure the used pins as input with pull up
+        pio_gpio_init(pio, A);
+        gpio_set_pulls(A, true, false);
+        pio_gpio_init(pio, B);
+        gpio_set_pulls(B, true, false);
+        // load the pio program into the pio memory
+        *offset = pio_add_program(pio, &encoder_program);
+        // make a sm config
+        pio_sm_config c = encoder_program_get_default_config(*offset);
+        // set the 'in' pins
+        sm_config_set_in_pins(&c, A);
+        // set shift to left: bits shifted by 'in' enter at the least
+        // significant bit (LSB), no autopush
+        sm_config_set_in_shift(&c, false, false, 0);
+        // set the IRQ handler
+        irq_set_exclusive_handler(PIO0_IRQ_0, irq_handler);
+        // enable the IRQ
+        irq_set_enabled(PIO0_IRQ_0, true);
+        pio0_hw->inte0 = PIO_IRQ0_INTE_SM0_BITS | PIO_IRQ0_INTE_SM1_BITS;
+        // init the sm.
+        // Note: the program starts after the jump table -> initial_pc = 16
+        pio_sm_init(pio, sm, 16, &c);
+        // enable the sm
+        pio_sm_set_enabled(pio, sm, true);
+}
+%}

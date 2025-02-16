@@ -14,7 +14,7 @@ add_executable(suprglidr
     src/ssd1306.c
 )
 
-pico_generate_pio_header(suprglidr src/enc.pio)
+pico_generate_pio_header(suprglidr ${CMAKE_CURRENT_LIST_DIR}/src/encoder.pio)
 
 pico_enable_stdio_usb(suprglidr 1)
 pico_enable_stdio_uart(suprglidr 0)
@@ -28,6 +28,7 @@ target_link_libraries(suprglidr
     hardware_i2c
     pico_multicore
     hardware_pio
+    hardware_irq
 )
 pico_add_extra_outputs(suprglidr)
 

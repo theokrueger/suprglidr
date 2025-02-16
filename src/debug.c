@@ -14,6 +14,7 @@
 
 void debug_init()
 {
+	if (!switch_is_pressed()) return; // only debug when botting with held switch
 	// run debug stuff only when trigger is help
 	sleep_ms(3000);
 	if (watchdog_caused_reboot()) {

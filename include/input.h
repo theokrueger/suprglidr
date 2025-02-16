@@ -19,3 +19,6 @@ int confirm_is_pressed();
 #define ENC_A 17
 #define ENC_B 18
 int encoder_state();
+
+// clear encoder state
+void clear_enc_state();
