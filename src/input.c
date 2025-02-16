@@ -15,11 +15,11 @@ void irq_handler()
 {
         if (pio0_hw->irq & 1)
         {
-		enc_state += ENC_CW;
+		enc_state = ENC_CW;
         }
         if (pio0_hw->irq & 2)
         {
-		enc_state += ENC_CCW;
+		enc_state = ENC_CCW;
         }
         pio0_hw->irq = 3;
 }
@@ -59,6 +59,7 @@ int encoder_state()
 {
 	int state = enc_state;
 	enc_state = ENC_NONE;
+	sleep_ms(50);
 	return state;
 }
 

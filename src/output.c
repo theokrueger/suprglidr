@@ -7,7 +7,6 @@
 #include "pico/stdlib.h"
 #include "pico/stdio.h"
 #include "pico/time.h"
-#include "hardware/pwm.h"
 #include "hardware/i2c.h"
 
 #include "../include/output.h"
