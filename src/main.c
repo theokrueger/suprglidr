@@ -292,7 +292,7 @@ void crouch_routine()
 			sprintf(buf, "%s", CROUCHBIND[sel]);
 			char cur_s[15];
 			sprintf(cur_s, "cur: <%i>", cur);
-			set_info_text("set jump:", buf, cur_s);
+			set_info_text("set crouch:", buf, cur_s);
 		}
 
 		last = sel;

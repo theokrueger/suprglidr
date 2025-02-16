@@ -1,1 +1,58 @@
-uses ssd1306 lib from [[https://github.com/daschr/pico-ssd1306]]
+* suprglidr.
+A one-button macropad to assist in hitting Superglides in Apex Legends.
+
+[[res/assembled.png]]
+
+** WTF is a Superglide?
+The Superglide is a frame-perfect movement tech in Apex Legends that allows you to gain a large amount of instant horizontal velocity after a wallclimb.
+It is very advantageous in combat and general traversal.
+
+The Superglide is tied to your framerate, as you must press jump then crouch on the exact next frame.
+This means that the trick is trivial on 60FPS due to a larger window, but is very difficult on 240FPS.
+
+Learn more at
+[[https://apexmovement.tech/superglidetrainer/]]
+
+** How to use
+Don't use it.
+
+*** Deviation
+Set a random deviation amount (0-100% of a frame).
+
+Defaults to 0.
+
+*** FPS
+Set your framerate cap (ensure that the game is capped at that framerate and you are actually reaching that framerate).
+
+Defaults to 240
+
+*** Jump bind
+Set your jump key.
+
+Defaults to <SPACE>
+
+*** Crouch bind
+Set your crouch key.
+
+Defaults to <V>
+
+** Is this cheating?
+Yes. So are Hall Effect keyboards with adjustable actuation points for this purpose.
+
+This project is for those of us who don't want to spend $200 on a new keyboard just for Apex movement.
+
+It also helps the case that the trick is hittable on 60-120FPS with ease, meaning it isnt automating inhuman feats.
+The cfg abusers were far worse before it got patched out, and that was simply using in-game tools to achieve inhuman feats.
+You are still kind of a loser for using something like this (not to say anything about the developer).
+
+** BOM
+- 1x ssd1306 OLED display
+- 1x rotary encoder (any)
+- 1x RP2040 dev board (any)
+- 1x keyswitch (any)
+- 3D printed parts
+
+** Acknowledgements
+- uses ssd1306 lib from [[https://github.com/daschr/pico-ssd1306]]
+- modified rotary encoder lib from [[https://github.com/GitJer/Rotary_encoder]]
+- modfied keyboard example from [[https://github.com/rktrlng/pico_tusb_keyboard]]
