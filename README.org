@@ -1,7 +1,7 @@
 * suprglidr.
 A one-button macropad to assist in hitting Superglides in Apex Legends.
 
-[[res/assembled.png]]
+[[res/assembled.jpg]]
 
 ** WTF is a Superglide?
 The Superglide is a frame-perfect movement tech in Apex Legends that allows you to gain a large amount of instant horizontal velocity after a wallclimb.
