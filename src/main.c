@@ -48,16 +48,13 @@ int main()
 }
 
 // keyboard
-const uint64_t interval_us = 125;
+const uint64_t interval_us = 1000; // 1000hz
 uint64_t crouch_next = 0;
 static void send_hid_report(bool keys_pressed)
 {
 	uint8_t crouch_code[6] = {get_crouch(), 0};
 	uint8_t jump_code[6] = {get_jump(), 0};
-	if (!tud_hid_ready())
-	{
-		return;
-	}
+	if (!tud_hid_ready()) return;
 
 	static bool send_empty = false;
 	if (crouch_next != 0 && time_us_64() >= crouch_next)
@@ -66,7 +63,7 @@ static void send_hid_report(bool keys_pressed)
 		crouch_next = 0;
 		send_empty = true;
 	}
-	else if (keys_pressed)
+	else if (!crouch_next && keys_pressed)
 	{
 	        int delay = 1000000 / get_fps();
 	        int deviation = get_rand_inclusive(-1 * get_deviation(), get_deviation()) * delay / 100;
