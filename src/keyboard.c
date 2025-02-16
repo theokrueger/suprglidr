@@ -1,12 +1,14 @@
 #include "class/hid/hid.h"
 
 #include "../include/input.h"
+#include "../include/util.h"
+#include "../include/keyboard.h"
 
 int last = 0;
 int update()
 {
 	int state = switch_is_pressed();
-	int changed = state != last;
+	int changed = state != last && state != 0;
 	last = state;
 	return changed;
 }
@@ -14,13 +16,14 @@ int update()
 int fps = 240;
 void set_fps(int val)
 {
-	fps = val;
+	if (fps <=0) fps = 60;
+	else fps = val;
 }
 
-int deviation = 50;
+int deviation = 0;
 void set_deviation(int val)
 {
-	deviation = val;
+	deviation = clamp(val, DEV_MIN, DEV_MAX);
 }
 
 uint8_t jump = HID_KEY_SPACE;
@@ -34,7 +37,6 @@ void set_crouch(uint8_t val)
 {
 	crouch = val;
 }
-
 
 int get_fps()
 {

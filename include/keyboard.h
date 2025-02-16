@@ -13,6 +13,8 @@ void set_crouch(uint8_t val);
 
 int get_fps();
 
+#define DEV_MIN 0
+#define DEV_MAX 100
 int get_deviation();
 
 uint8_t get_jump();

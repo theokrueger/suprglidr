@@ -11,5 +11,6 @@ int imin(int a, int b);
 /// Return a random number on range [low, high]
 int get_rand_inclusive(int low, int high);
 
-/// await any inputs to proceed to a following thing
-void await_any_input();
+int wrap(int val, int min, int max);
+
+int clamp(int val, int min, int max);

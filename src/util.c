@@ -24,3 +24,21 @@ int get_rand_inclusive(int low, int high)
 {
 	return (get_rand_32() % (high - low + 1)) + low;
 }
+
+// Wrap a val
+int wrap(int val, int min, int max)
+{
+	if (val < min) return max;
+	else if (val > max) return min;
+
+	return val;
+}
+
+// Clamp a val
+int clamp(int val, int min, int max)
+{
+	if (val < min) return min;
+	else if (val > max) return max;
+
+	return val;
+}

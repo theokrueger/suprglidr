@@ -11,6 +11,7 @@
 #include "pico/multicore.h"
 #include "bsp/board.h"
 #include "tusb.h"
+#include "class/hid/hid.h"
 
 #include "../include/input.h"
 #include "../include/output.h"
@@ -33,7 +34,6 @@ int main()
 {
 	// init
 	stdio_init_all();
-	printf("Starting...\n");
 	setup_input();
 	setup_output();
 	debug_init();
@@ -48,6 +48,8 @@ int main()
 }
 
 // keyboard
+const uint64_t interval_us = 125;
+uint64_t crouch_next = 0;
 static void send_hid_report(bool keys_pressed)
 {
 	uint8_t crouch_code[6] = {get_crouch(), 0};
@@ -58,10 +60,18 @@ static void send_hid_report(bool keys_pressed)
 	}
 
 	static bool send_empty = false;
-
-	if (keys_pressed)
+	if (crouch_next != 0 && time_us_64() >= crouch_next)
 	{
+		tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, crouch_code);
+		crouch_next = 0;
+		send_empty = true;
+	}
+	else if (keys_pressed)
+	{
+	        int delay = 1000000 / get_fps();
+	        int deviation = get_rand_inclusive(-1 * get_deviation(), get_deviation()) * delay / 100;
 		tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, jump_code);
+		crouch_next = time_us_64() + delay + deviation;
 		send_empty = true;
 	}
 	else
@@ -76,15 +86,13 @@ static void send_hid_report(bool keys_pressed)
 
 void hid_task(void)
 {
-	// poll every 10ms
-	const uint32_t interval_ms = 5;
-	static uint32_t start_ms = 0;
+	static uint64_t start_us = 0;
 
-	if (board_millis() - start_ms < interval_ms)
+	if (time_us_64() - start_us < interval_us)
 	{
 		return; // not enough time
 	}
-	start_ms += interval_ms;
+	start_us += interval_us;
 
 	// Check for keys pressed
 	bool const keys_pressed = update();
@@ -94,7 +102,9 @@ void hid_task(void)
 
 // stubs
 void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize) {}
-uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen) {}
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen) {
+	return 0;
+}
 void tud_mount_cb(void) {}
 void tud_umount_cb(void) {}
 void tud_suspend_cb(bool remote_wakeup_en) {}
@@ -158,14 +168,6 @@ void run_settings()
 	}
 }
 
-int wrap(int val, int min, int max)
-{
-	if (val < min) return max;
-	else if (val > max) return min;
-
-	return val;
-}
-
 void change_screen(int screen)
 {
 	set_info_text("", SCREEN_TEXT[screen], "");
@@ -185,18 +187,20 @@ void fps_routine()
 	int cur = get_fps();
 	while(1)
 	{
-		printf("%i\n", sel);
-		if(confirm_is_pressed()) return;
+		if(confirm_is_pressed()) {
+			set_fps(FPS[sel]);
+			return;
+		}
 
 		int state = encoder_state();
 	        sel += state; // +/- 1
 	        sel = wrap(sel, 0, FPS_CNT - 1);
 
 		if(sel != last) {
-			char sel_s[10];
-			sprintf(sel_s, "%i%%", sel);
-			char cur_s[10];
-			sprintf(cur_s, "cur: %i%%", cur);
+			char sel_s[15];
+			sprintf(sel_s, "%i FPS", FPS[sel]);
+			char cur_s[15];
+			sprintf(cur_s, "cur: %i", cur);
 			set_info_text("set FPS:", sel_s, cur_s);
 		}
 
@@ -204,8 +208,6 @@ void fps_routine()
 	}
 }
 
-const int DEV_MIN = 0;
-const int DEV_MAX = 100;
 void deviation_routine()
 {
 	int sel = 0;
@@ -213,7 +215,10 @@ void deviation_routine()
 	int cur = get_deviation();
 	while(1)
 	{
-		if(confirm_is_pressed()) return;
+		if(confirm_is_pressed()) {
+			set_deviation(sel);
+			return;
+		}
 
 		int state = encoder_state();
 	        sel += state; // +/- 1
@@ -233,6 +238,7 @@ void deviation_routine()
 
 #define JUMPBIND_CNT 4
 const char *JUMPBIND[JUMPBIND_CNT] = {"<SPACE>", "<CTRL>", "V", "B"};
+const uint8_t JUMPCODE[JUMPBIND_CNT] = {HID_KEY_SPACE, HID_KEY_CONTROL_RIGHT, HID_KEY_V, HID_KEY_B};
 void jump_routine()
 {
 	int sel = 0;
@@ -240,8 +246,10 @@ void jump_routine()
 	int cur = get_jump();
 	while(1)
 	{
-		printf("%i\n", sel);
-		if(confirm_is_pressed()) return;
+		if(confirm_is_pressed()) {
+			set_jump(JUMPCODE[sel]);
+			return;
+		}
 
 		int state = encoder_state();
 	        sel += state; // +/- 1
@@ -250,8 +258,8 @@ void jump_routine()
 		if(sel != last) {
 			char buf[15];
 			sprintf(buf, "%s", JUMPBIND[sel]);
-			char cur_s[10];
-			sprintf(cur_s, "cur: %i%%", cur);
+			char cur_s[15];
+			sprintf(cur_s, "cur: <%i>", cur);
 			set_info_text("set jump:", buf, cur_s);
 		}
 
@@ -261,7 +269,8 @@ void jump_routine()
 
 
 #define CROUCHBIND_CNT 4
-const char *CROUCHBIND[JUMPBIND_CNT] = {"<SPACE>", "<CTRL>", "V", "B"};
+const char *CROUCHBIND[CROUCHBIND_CNT] = {"<SPACE>", "<CTRL>", "V", "B"};
+const uint8_t CROUCHCODE[CROUCHBIND_CNT] = {HID_KEY_SPACE, HID_KEY_CONTROL_RIGHT, HID_KEY_V, HID_KEY_B};
 void crouch_routine()
 {
 	int sel = 0;
@@ -269,8 +278,10 @@ void crouch_routine()
 	int cur = get_crouch();
 	while(1)
 	{
-		printf("%i\n", sel);
-		if(confirm_is_pressed()) return;
+		if(confirm_is_pressed()) {
+			set_crouch(CROUCHCODE[sel]);
+			return;
+		}
 
 		int state = encoder_state();
 	        sel += state; // +/- 1
@@ -279,8 +290,8 @@ void crouch_routine()
 		if(sel != last) {
 			char buf[15];
 			sprintf(buf, "%s", CROUCHBIND[sel]);
-			char cur_s[10];
-			sprintf(cur_s, "cur: %i%%", cur);
+			char cur_s[15];
+			sprintf(cur_s, "cur: <%i>", cur);
 			set_info_text("set jump:", buf, cur_s);
 		}
 
